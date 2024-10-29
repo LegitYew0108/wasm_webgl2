@@ -25,6 +25,8 @@ pub async fn run() -> Result<(), JsValue>{
 
     let gl = gl_obj.dyn_into::<WebGl2RenderingContext>()?;
 
+    console::log_1(&"gl context success".into());
+
     let vertex_shader = gl.create_shader(WebGl2RenderingContext::VERTEX_SHADER).unwrap();
 
     let Ok(vertex_shader_source) = fs::read_to_string(Path::new("shader/vertex.glsl")) else{
@@ -55,6 +57,8 @@ pub async fn run() -> Result<(), JsValue>{
         return Ok(());
     }
 
+    console::log_1(&"shader compile success".into());
+
     let Some(program) = gl.create_program() else{
         console::log_1(&"program none value".into());
         return Ok(());
@@ -63,7 +67,7 @@ pub async fn run() -> Result<(), JsValue>{
     gl.attach_shader(&program, &vertex_shader);
     gl.attach_shader(&program, &fragment_shader);
     gl.link_program(&program);
-
+    
     // プログラムのリンクが成功したか確認
     let program_status = gl.get_program_parameter(&program, WebGl2RenderingContext::LINK_STATUS).as_bool().unwrap();
     if !program_status {
@@ -71,6 +75,8 @@ pub async fn run() -> Result<(), JsValue>{
         console::log_1(&log.into());
         return Ok(());
     }
+
+    console::log_1(&"program link success".into());
 
     gl.use_program(Some(&program));
 
@@ -126,6 +132,8 @@ pub async fn run() -> Result<(), JsValue>{
 
     gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&color_buffer));
     gl.buffer_data_with_array_buffer_view(WebGl2RenderingContext::ARRAY_BUFFER, &colors.into(), WebGl2RenderingContext::STATIC_DRAW);
+
+    console::log_1(&"buffer data success".into());
 
     // 描画
     const VERTEX_NUMS: i32 = 6;
