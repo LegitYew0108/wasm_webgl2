@@ -20,7 +20,7 @@ pub async fn run() -> Result<(), JsValue>{
     console::log_1(&"canvas success".into());
 
     // WebGL2のコンテキストを取得
-    let Some(gl_obj) = canvas_element.get_context("webgl")? else{
+    let Some(gl_obj) = canvas_element.get_context("webgl2")? else{
         console::log_1(&"gl none value".into());
         return Ok(());
     };
