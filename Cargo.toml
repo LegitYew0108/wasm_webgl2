@@ -1,0 +1,14 @@
+[package]
+name = "first_webgl2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+js-sys = "0.3.72"
+tokio = { version = "1.41.0", features = ["rt"] }
+wasm-bindgen = "0.2.95"
+wasm-bindgen-futures = "0.4.45"
+web-sys = {version="0.3.72", features=['console','Window','Document','HtmlCanvasElement','Element','WebGl2RenderingContext','WebGlShader','WebGlProgram','WebGlBuffer']}
+
+[lib]
+crate-type = ["cdylib"]
