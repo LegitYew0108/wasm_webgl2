@@ -41,8 +41,8 @@ pub async fn run() -> Result<(), JsValue>{
     let (success_tx, success_rx) = oneshot::channel::<ShaderReadValue>();
 
     let read_glsls = wasm_bindgen_futures::spawn_local(async move{
-        let vertex_shader_source = wasm_bindgen_futures::JsFuture::from(window.fetch_with_str("../shader/vertex.glsl")).await.unwrap().as_string().unwrap();
-        let fragment_shader_source = wasm_bindgen_futures::JsFuture::from(window.fetch_with_str("../shader/fragment.glsl")).await.unwrap().as_string().unwrap();
+        let vertex_shader_source = wasm_bindgen_futures::JsFuture::from(window.fetch_with_str("../shader/vertex_shader.glsl")).await.unwrap().as_string().unwrap();
+        let fragment_shader_source = wasm_bindgen_futures::JsFuture::from(window.fetch_with_str("../shader/fragment_shader.glsl")).await.unwrap().as_string().unwrap();
         success_tx.send(ShaderReadValue{vertex: vertex_shader_source, fragment: fragment_shader_source});
     });
 
