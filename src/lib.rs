@@ -26,7 +26,7 @@ pub async fn run() -> Result<(), JsValue>{
 
     let vertex_shader = gl.create_shader(WebGl2RenderingContext::VERTEX_SHADER).unwrap();
 
-    let Ok(vertex_shader_source) = fs::read_to_string("shader/vertex.glsl") else{
+    let Ok(vertex_shader_source) = fs::read_to_string("../shader/vertex.glsl") else{
         console::log_1(&"vertex shader source none value".into());
         return Ok(());
     };
@@ -41,7 +41,7 @@ pub async fn run() -> Result<(), JsValue>{
     }
 
     let fragment_shader = gl.create_shader(WebGl2RenderingContext::FRAGMENT_SHADER).unwrap();
-    let Ok(fragment_shader_source) = fs::read_to_string("shader/fragment.glsl") else{
+    let Ok(fragment_shader_source) = fs::read_to_string("../shader/fragment.glsl") else{
         console::log_1(&"fragment shader source none value".into());
         return Ok(());
     };
