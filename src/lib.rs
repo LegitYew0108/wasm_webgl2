@@ -17,6 +17,8 @@ pub async fn run() -> Result<(), JsValue>{
     canvas_element.set_width(500);
     canvas_element.set_height(500);
 
+    console::log_1(&"canvas success".into());
+
     // WebGL2のコンテキストを取得
     let Some(gl_obj) = canvas_element.get_context("webgl")? else{
         console::log_1(&"gl none value".into());
