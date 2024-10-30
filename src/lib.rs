@@ -55,13 +55,18 @@ pub async fn run() -> Result<(), JsValue> {
         .unwrap();
 
         // fragment shaderを読み出す
-        let fragment_shader_source = wasm_bindgen_futures::JsFuture::from(
+        let Ok(fragment_shader_source) = wasm_bindgen_futures::JsFuture::from(
             window.fetch_with_str("../shader/fragment_shader.glsl"),
         )
-        .await
-        .unwrap()
-        .as_string()
-        .unwrap();
+        .await else{
+            console::log_1(&"shader read failed".into());
+            panic!("shader read failed");
+        };
+        let Some(fragment_shader_source) = fragment_shader_source
+        .as_string() else{
+            console::log_1(&"shader source none".into());
+            panic!("shader read failed");
+        };
 
         console::log_1(&"shader read success".into());
         success_tx
