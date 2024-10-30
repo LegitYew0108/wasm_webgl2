@@ -47,7 +47,7 @@ pub async fn run() -> Result<(), JsValue> {
         console::log_1(&"shader read start".into());
         // vertex shaderを読み出す
         let Ok(vertex_shader_source) = wasm_bindgen_futures::JsFuture::from(
-            window.fetch_with_str("../shader/vertex_shader.glsl"),
+            window.fetch_with_str("vertex_shader.glsl"),
         )
         .await else{
             console::log_1(&"shader read failed".into());
@@ -67,7 +67,7 @@ pub async fn run() -> Result<(), JsValue> {
 
         // fragment shaderを読み出す
         let Ok(fragment_shader_source) = wasm_bindgen_futures::JsFuture::from(
-            window.fetch_with_str("../shader/fragment_shader.glsl"),
+            window.fetch_with_str("fragment_shader.glsl"),
         )
         .await else{
             console::log_1(&"shader read failed".into());
