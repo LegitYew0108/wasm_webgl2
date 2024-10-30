@@ -62,6 +62,7 @@ pub async fn run() -> Result<(), JsValue> {
         .as_string()
         .unwrap();
 
+        console::log_1(&"shader read success".into());
         success_tx
             .send(ShaderReadValue {
                 vertex: vertex_shader_source,
