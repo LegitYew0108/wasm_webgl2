@@ -44,6 +44,7 @@ pub async fn run() -> Result<(), JsValue> {
     let (success_tx, success_rx) = oneshot::channel::<ShaderReadValue>();
 
     wasm_bindgen_futures::spawn_local(async move {
+        console::log_1(&"shader read start".into());
         // vertex shaderを読み出す
         let vertex_shader_source = wasm_bindgen_futures::JsFuture::from(
             window.fetch_with_str("../shader/vertex_shader.glsl"),
