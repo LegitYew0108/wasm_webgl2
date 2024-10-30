@@ -46,13 +46,18 @@ pub async fn run() -> Result<(), JsValue> {
     wasm_bindgen_futures::spawn_local(async move {
         console::log_1(&"shader read start".into());
         // vertex shaderを読み出す
-        let vertex_shader_source = wasm_bindgen_futures::JsFuture::from(
+        let Ok(vertex_shader_source) = wasm_bindgen_futures::JsFuture::from(
             window.fetch_with_str("../shader/vertex_shader.glsl"),
         )
-        .await
-        .unwrap()
-        .as_string()
-        .unwrap();
+        .await else{
+            console::log_1(&"shader read failed".into());
+            panic!("shader read failed");
+        };
+        let Some(vertex_shader_source) = vertex_shader_source
+        .as_string() else{
+            console::log_1(&"shader source none".into());
+            panic!("shader read failed");
+        };
 
         // fragment shaderを読み出す
         let Ok(fragment_shader_source) = wasm_bindgen_futures::JsFuture::from(
