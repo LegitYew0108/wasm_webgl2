@@ -53,6 +53,12 @@ pub async fn run() -> Result<(), JsValue> {
             console::log_1(&"shader read failed".into());
             panic!("shader read failed");
         };
+        if vertex_shader_source.is_string() {
+            console::log_1(&"string".into());
+        }
+        else{
+            console::log_1(&"not string".into());
+        }
         let Some(vertex_shader_source) = vertex_shader_source
         .as_string() else{
             console::log_1(&"shader source none".into());
