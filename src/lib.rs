@@ -1,6 +1,6 @@
 use futures::channel::oneshot;
 use wasm_bindgen::prelude::*;
-use web_sys::{console, HtmlCanvasElement, WebGl2RenderingContext};
+use web_sys::{console, HtmlCanvasElement, WebGl2RenderingContext,Response};
 
 #[derive(Debug, Clone)]
 struct ShaderReadValue {
@@ -53,14 +53,21 @@ pub async fn run() -> Result<(), JsValue> {
             console::log_1(&"shader read failed".into());
             panic!("shader read failed");
         };
-        if vertex_shader_source.is_string() {
-            console::log_1(&"string".into());
-        }
-        else{
-            console::log_1(&"not string".into());
-        }
-        let Some(vertex_shader_source) = vertex_shader_source
-        .as_string() else{
+        let Ok(vertex_shader_source) = vertex_shader_source
+        .dyn_into::<Response>() else{
+            console::log_1(&"dynamic cast to Response failed".into());
+            panic!("shader read failed");
+        };
+        let Ok(vertex_shader_source) = vertex_shader_source.text() else{
+            console::log_1(&"could not change to text".into());
+            panic!("shader read failed");
+        };
+        let Ok(vertex_shader_source) = wasm_bindgen_futures::JsFuture::from(vertex_shader_source).await else{
+            console::log_1(&"promise failed".into());
+            panic!("shader read failed");
+        };
+
+        let Some(vertex_shader_source) = vertex_shader_source.as_string() else{
             console::log_1(&"shader source none".into());
             panic!("shader read failed");
         };
@@ -73,19 +80,28 @@ pub async fn run() -> Result<(), JsValue> {
             console::log_1(&"shader read failed".into());
             panic!("shader read failed");
         };
-        let Some(fragment_shader_source) = fragment_shader_source
-        .as_string() else{
-            console::log_1(&"shader source none".into());
+        let Ok(fragment_shader_source) = fragment_shader_source
+        .dyn_into::<Response>() else{
+            console::log_1(&"dynamic cast to Response failed".into());
+            panic!("shader read failed");
+        };
+        let Ok(fragment_shader_source) = fragment_shader_source.text() else{
+            console::log_1(&"could not change to text".into());
+            panic!("shader read failed");
+        };
+        let Ok(fragment_shader_source) = wasm_bindgen_futures::JsFuture::from(fragment_shader_source).await else{
+            console::log_1(&"promise failed".into());
             panic!("shader read failed");
         };
 
-        console::log_1(&"shader read success".into());
-        success_tx
-            .send(ShaderReadValue {
-                vertex: vertex_shader_source,
-                fragment: fragment_shader_source,
-            })
-            .unwrap();
+        let Some(fragment_shader_source) = fragment_shader_source.as_string() else{
+            console::log_1(&"shader source none".into());
+            panic!("shader read failed");
+        };
+        let _ = success_tx.send(ShaderReadValue {
+            vertex: vertex_shader_source,
+            fragment: fragment_shader_source,
+        });
     });
 
     wasm_bindgen_futures::spawn_local(async move {
