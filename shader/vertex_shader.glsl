@@ -10,5 +10,5 @@ void main(){
     v_color = color;
 
     // 頂点座標をそのまま使う
-    gl_position = vec4(vertex_position, 1.0);
+    gl_Position = vec4(vertex_position, 1.0);
 }
