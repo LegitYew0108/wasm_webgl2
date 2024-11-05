@@ -165,7 +165,7 @@ pub async fn run() -> Result<(), JsValue> {
         let color_attrib_location = gl.get_attrib_location(&program, "color");
 
         const VERTEX_SIZE: i32 = 3;
-        const COLOR_SIZE: i32 = 3;
+        const COLOR_SIZE: i32 = 4;
 
         gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vertex_buffer));
         gl.enable_vertex_attrib_array(vertex_attrib_location as u32);
@@ -192,15 +192,23 @@ pub async fn run() -> Result<(), JsValue> {
         );
 
         let vertices: [f32; 18] = [
-            -0.5, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.5,
-            0.5, 0.0,
+            -0.5, 0.5, 0.0,
+            -0.5, -0.5, 0.0,
+            0.5, 0.5, 0.0,
+            -0.5, -0.5, 0.0,
+            0.5, -0.5, 0.0,
+            0.5, 0.5, 0.0,
         ];
 
         let vertices = js_sys::Float32Array::from(vertices.as_ref());
 
         let colors: [f32; 24] = [
-            1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0,
+            1.0, 0.0, 0.0, 1.0,
+            0.0, 1.0, 0.0, 1.0,
+            0.0, 0.0, 1.0, 1.0,
+            0.0, 1.0, 0.0, 1.0,
+            0.0, 0.0, 0.0, 1.0,
+            0.0, 0.0, 1.0, 1.0,
         ];
 
         let colors = js_sys::Float32Array::from(colors.as_ref());
