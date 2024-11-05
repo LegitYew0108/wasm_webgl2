@@ -156,10 +156,6 @@ pub async fn run() -> Result<(), JsValue> {
             console::log_1(&"vertex buffer none value".into());
             panic!("vertex buffer none value");
         };
-        let Some(color_buffer) = gl.create_buffer() else {
-            console::log_1(&"vertex buffer none value".into());
-            panic!("color buffer none value");
-        };
 
         let vertex_attrib_location = gl.get_attrib_location(&program, "vertex_position");
         let color_attrib_location = gl.get_attrib_location(&program, "color");
@@ -167,8 +163,17 @@ pub async fn run() -> Result<(), JsValue> {
         const VERTEX_SIZE: i32 = 3;
         const COLOR_SIZE: i32 = 4;
 
+        const FLOAT32_BYTES_PER_ELEMENT: i32 = 4;
+        const STRIDE: i32 = (VERTEX_SIZE + COLOR_SIZE) * FLOAT32_BYTES_PER_ELEMENT;
+        const POSITION_OFFSET: i32 = 0;
+        const COLOR_OFFSET: i32 = VERTEX_SIZE * FLOAT32_BYTES_PER_ELEMENT;
+
+        //バッファをバインド
         gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vertex_buffer));
+
+        //in変数の有効化(glsl)
         gl.enable_vertex_attrib_array(vertex_attrib_location as u32);
+        gl.enable_vertex_attrib_array(color_attrib_location as u32);
 
         gl.vertex_attrib_pointer_with_i32(
             vertex_attrib_location as u32,
@@ -178,10 +183,6 @@ pub async fn run() -> Result<(), JsValue> {
             0,
             0,
         );
-
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&color_buffer));
-        gl.enable_vertex_attrib_array(color_attrib_location as u32);
-
         gl.vertex_attrib_pointer_with_i32(
             color_attrib_location as u32,
             COLOR_SIZE,
@@ -191,39 +192,28 @@ pub async fn run() -> Result<(), JsValue> {
             0,
         );
 
-        let vertices: [f32; 18] = [
+        let vertices: [f32; 42] = [
             -0.5, 0.5, 0.0,
+            1.0, 0.0, 0.0, 1.0,
             -0.5, -0.5, 0.0,
+            0.0, 1.0, 0.0, 1.0,
             0.5, 0.5, 0.0,
+            0.0, 0.0, 1.0, 1.0,
             -0.5, -0.5, 0.0,
+            0.0, 1.0, 0.0, 1.0,
             0.5, -0.5, 0.0,
+            0.0, 0.0, 0.0, 1.0,
             0.5, 0.5, 0.0,
+            0.0, 0.0, 1.0, 1.0,
         ];
 
         let vertices = js_sys::Float32Array::from(vertices.as_ref());
 
-        let colors: [f32; 24] = [
-            1.0, 0.0, 0.0, 1.0,
-            0.0, 1.0, 0.0, 1.0,
-            0.0, 0.0, 1.0, 1.0,
-            0.0, 1.0, 0.0, 1.0,
-            0.0, 0.0, 0.0, 1.0,
-            0.0, 0.0, 1.0, 1.0,
-        ];
-
-        let colors = js_sys::Float32Array::from(colors.as_ref());
-
+        //バインドしてデータを転送
         gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vertex_buffer));
         gl.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::ARRAY_BUFFER,
             &vertices.into(),
-            WebGl2RenderingContext::STATIC_DRAW,
-        );
-
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&color_buffer));
-        gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            &colors.into(),
             WebGl2RenderingContext::STATIC_DRAW,
         );
 
