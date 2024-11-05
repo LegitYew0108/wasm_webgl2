@@ -157,6 +157,11 @@ pub async fn run() -> Result<(), JsValue> {
             panic!("vertex buffer none value");
         };
 
+        let Some(index_buffer) = gl.create_buffer() else {
+            console::log_1(&"index buffer none value".into());
+            panic!("index buffer none value");
+        };
+
         let vertex_attrib_location = gl.get_attrib_location(&program, "vertex_position");
         let color_attrib_location = gl.get_attrib_location(&program, "color");
 
@@ -192,20 +197,18 @@ pub async fn run() -> Result<(), JsValue> {
             COLOR_OFFSET,
         );
 
-        let vertices: [f32; 42] = [
+        let vertices: [f32; 28] = [
             -0.5, 0.5, 0.0,
             1.0, 0.0, 0.0, 1.0,
             -0.5, -0.5, 0.0,
             0.0, 1.0, 0.0, 1.0,
             0.5, 0.5, 0.0,
             0.0, 0.0, 1.0, 1.0,
-            -0.5, -0.5, 0.0,
-            0.0, 1.0, 0.0, 1.0,
             0.5, -0.5, 0.0,
             0.0, 0.0, 0.0, 1.0,
-            0.5, 0.5, 0.0,
-            0.0, 0.0, 1.0, 1.0,
         ];
+
+        let indices = js_sys::Uint16Array::from([0, 1, 2, 1, 3, 2].as_ref());
 
         let vertices = js_sys::Float32Array::from(vertices.as_ref());
 
@@ -216,12 +219,18 @@ pub async fn run() -> Result<(), JsValue> {
             &vertices.into(),
             WebGl2RenderingContext::STATIC_DRAW,
         );
+        gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
+        gl.buffer_data_with_array_buffer_view(
+            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            &indices.clone().into(),
+            WebGl2RenderingContext::STATIC_DRAW,
+        );
 
         console::log_1(&"buffer data success".into());
 
         // 描画
-        const VERTEX_NUMS: i32 = 6;
-        gl.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, VERTEX_NUMS);
+        let index_size: u32 = indices.length();
+        gl.draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES, index_size as i32, WebGl2RenderingContext::UNSIGNED_SHORT, 0);
 
         gl.flush();
     });
