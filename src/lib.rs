@@ -180,16 +180,16 @@ pub async fn run() -> Result<(), JsValue> {
             VERTEX_SIZE,
             WebGl2RenderingContext::FLOAT,
             false,
-            0,
-            0,
+            STRIDE,
+            POSITION_OFFSET,
         );
         gl.vertex_attrib_pointer_with_i32(
             color_attrib_location as u32,
             COLOR_SIZE,
             WebGl2RenderingContext::FLOAT,
             false,
-            0,
-            0,
+            STRIDE,
+            COLOR_OFFSET,
         );
 
         let vertices: [f32; 42] = [
