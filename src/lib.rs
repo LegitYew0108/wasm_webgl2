@@ -141,8 +141,13 @@ pub async fn run() -> Result<(), JsValue> {
         let mut is_vertex_received = false;
         let mut fragment_shader_source:Option<String> = None;
         let mut is_fragment_received = false;
-        while let Ok(message) = rx.try_next(){
+        while let message = rx.try_next(){
+            let Ok(message) = message else{
+                console::log_1(&"could not receive message".into());
+                panic!("could not receive message");
+            };
             let Some(message) = message else{
+                console::log_1(&"message none".into());
                 break;
             };
             match message{
