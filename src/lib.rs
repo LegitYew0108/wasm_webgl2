@@ -1,53 +1,74 @@
-use futures::channel::oneshot;
 use wasm_bindgen::prelude::*;
-use web_sys::{console, HtmlCanvasElement, WebGl2RenderingContext,Response};
+use web_sys::{console,Response,HtmlCanvasElement,WebGl2RenderingContext};
+use futures::channel::mpsc;
 
 #[derive(Debug, Clone)]
-struct ShaderReadValue {
-    vertex: String,
-    fragment: String,
+enum Shader{
+    Vertex(String),
+    Fragment(String),
 }
 
-#[wasm_bindgen(start)]
+#[wasm_bindgen]
 pub async fn run() -> Result<(), JsValue> {
-    let window = web_sys::window().expect("no global `window` exists");
-    let document = window.document().expect("should have a document on window");
-    let body = document.body().expect("document should have a body");
-
-    // canvas要素を作成してbodyに追加
-    let canvas = document.create_element("canvas")?;
-    body.append_child(&canvas)?;
-
-    let canvas_element = canvas.dyn_into::<HtmlCanvasElement>()?;
-    canvas_element.set_width(500);
-    canvas_element.set_height(500);
-
-    console::log_1(&"canvas success".into());
-
-    // WebGL2のコンテキストを取得
-    let Some(gl_obj) = canvas_element.get_context("webgl2")? else {
-        console::log_1(&"gl none value".into());
-        return Ok(());
+    //いつもの　window, document, bodyを取得
+    let Some(window) = web_sys::window() else{
+        console::log_1(&"Error: No window found".into());
+        return Err(JsValue::NULL);
+    };
+    let Some(document) = window.document() else{
+        console::log_1(&"Error: No document found".into());
+        return Err(JsValue::NULL);
+    };
+    let Some(body) = document.body() else{
+        console::log_1(&"Error: No body found".into());
+        return Err(JsValue::NULL);
     };
 
-    let gl = gl_obj.dyn_into::<WebGl2RenderingContext>()?;
+    // canvas要素を作成してbodyに追加
+    let Ok(canvas) = document.create_element("canvas") else{
+        console::log_1(&"Error: could not create canvas element".into());
+        return Err(JsValue::NULL);
+    };
 
-    console::log_1(&"gl context success".into());
+    body.append_child(&canvas).unwrap();
 
-    let vertex_shader = gl
-        .create_shader(WebGl2RenderingContext::VERTEX_SHADER)
-        .unwrap();
-    let fragment_shader = gl
-        .create_shader(WebGl2RenderingContext::FRAGMENT_SHADER)
-        .unwrap();
+    // HtmlCanvasElementを取得
+    let Ok(canvas_element) = canvas.dyn_into::<web_sys::HtmlCanvasElement>() else{
+        console::log_1(&"Error: could not convert to HtmlCanvasElement".into());
+        return Err(JsValue::NULL);
+    };
 
-    let (success_tx, success_rx) = oneshot::channel::<ShaderReadValue>();
+    canvas_element.set_width(500);
+    canvas_element.set_height(500);
+    
+    console::log_1(&"set canvas success".into());
 
-    wasm_bindgen_futures::spawn_local(async move {
-        console::log_1(&"shader read start".into());
+    let Ok(gl) = canvas_element.get_context("webgl2") else{
+        console::log_1(&"Error: could not get webgl2 context".into());
+        return Err(JsValue::NULL);
+    };
+
+    let Some(gl) = gl else{
+        console::log_1(&"Error: could not get webgl2 context".into());
+        return Err(JsValue::NULL);
+    };
+
+    let Ok(gl) = gl.dyn_into::<web_sys::WebGl2RenderingContext>() else{
+        console::log_1(&"Error: could not convert to WebGl2RenderingContext".into());
+        return Err(JsValue::NULL);
+    };
+
+    let(mut tx, rx) = mpsc::channel::<Shader>(32);
+
+    let mut vertex_tx = tx.clone();
+    let clone_window = window.clone();
+
+    wasm_bindgen_futures::spawn_local(async move{
+        console::log_1(&"vertex shader read start".into());
+
         // vertex shaderを読み出す
         let Ok(vertex_shader_source) = wasm_bindgen_futures::JsFuture::from(
-            window.fetch_with_str("../shader/vertex_shader.glsl"),
+            clone_window.fetch_with_str("../shader/vertex_shader.glsl"),
         )
         .await else{
             console::log_1(&"shader read failed".into());
@@ -71,10 +92,22 @@ pub async fn run() -> Result<(), JsValue> {
             console::log_1(&"shader source none".into());
             panic!("shader read failed");
         };
+        
+        let value = Shader::Vertex(vertex_shader_source);
+        loop{
+            let Err(_) = vertex_tx.try_send(value.clone()) else{
+                break;
+            };
+        }
+    });
+
+    let clone_window = window.clone();
+    wasm_bindgen_futures::spawn_local(async move{
+        console::log_1(&"fragment shader read start".into());
 
         // fragment shaderを読み出す
         let Ok(fragment_shader_source) = wasm_bindgen_futures::JsFuture::from(
-            window.fetch_with_str("../shader/fragment_shader.glsl"),
+            clone_window.fetch_with_str("../shader/fragment_shader.glsl"),
         )
         .await else{
             console::log_1(&"shader read failed".into());
@@ -98,15 +131,47 @@ pub async fn run() -> Result<(), JsValue> {
             console::log_1(&"shader source none".into());
             panic!("shader read failed");
         };
-        let _ = success_tx.send(ShaderReadValue {
-            vertex: vertex_shader_source,
-            fragment: fragment_shader_source,
-        });
+        
+        let value = Shader::Fragment(fragment_shader_source);
+        loop{
+            let Err(_) = tx.try_send(value.clone()) else{
+                break;
+            };
+        }
     });
 
-    wasm_bindgen_futures::spawn_local(async move {
-        let shader_sources = success_rx.await;
-        gl.shader_source(&vertex_shader, &shader_sources.clone().unwrap().vertex);
+    wasm_bindgen_futures::spawn_local(async move{
+        let vertex_shader_source:Option<String> = None;
+        let is_vertex_received = false;
+        let fragment_shader_source:Option<String> = None;
+        let is_fragment_received = false;
+        rx.for_each(|shader|{
+            match shader{
+                Shader::Vertex(source) => {
+                    console::log_1(&"vertex shader".into());
+                    console::log_1(&source.into());
+                    vertex_shader_source = Some(source);
+                    is_vertex_received = true;
+                },
+                Shader::Fragment(source) => {
+                    console::log_1(&"fragment shader".into());
+                    console::log_1(&source.into());
+                    fragment_shader_source = Some(source);
+                    is_fragment_received = true;
+                },
+            }
+            futures::future::ready(())
+        }).await;
+
+        if !is_vertex_received || !is_fragment_received{
+            console::log_1(&"shader read failed".into());
+            panic!("shader read failed");
+        }
+
+        let vertex_shader = gl.create_shader(WebGl2RenderingContext::VERTEX_SHADER).unwrap();
+        let fragment_shader = gl.create_shader(WebGl2RenderingContext::FRAGMENT_SHADER).unwrap();
+
+        gl.shader_source(&vertex_shader, &vertex_shader_source.unwrap());
         gl.compile_shader(&vertex_shader);
         let vertex_status = gl
             .get_shader_parameter(&vertex_shader, WebGl2RenderingContext::COMPILE_STATUS)
@@ -117,7 +182,7 @@ pub async fn run() -> Result<(), JsValue> {
             console::log_1(&log.into());
         }
 
-        gl.shader_source(&fragment_shader, &shader_sources.clone().unwrap().fragment);
+        gl.shader_source(&fragment_shader, &fragment_shader_source.unwrap());
         gl.compile_shader(&fragment_shader);
         let fragment_status = gl
             .get_shader_parameter(&fragment_shader, WebGl2RenderingContext::COMPILE_STATUS)
@@ -129,7 +194,7 @@ pub async fn run() -> Result<(), JsValue> {
         }
         console::log_1(&"shader compile success".into());
 
-        let Some(program) = gl.create_program() else {
+        let Some(program) = gl.create_program() else{
             console::log_1(&"program none value".into());
             panic!("program none value");
         };
@@ -138,32 +203,16 @@ pub async fn run() -> Result<(), JsValue> {
         gl.attach_shader(&program, &fragment_shader);
         gl.link_program(&program);
 
-        // プログラムのリンクが成功したか確認
-        let program_status = gl
-            .get_program_parameter(&program, WebGl2RenderingContext::LINK_STATUS)
+        let link_status = gl.get_program_parameter(&program, WebGl2RenderingContext::LINK_STATUS)
             .as_bool()
             .unwrap();
-        if !program_status {
+        if !link_status{
             let log = gl.get_program_info_log(&program).unwrap();
             console::log_1(&log.into());
         }
 
-        console::log_1(&"program link success".into());
-
+        // プログラムを使用
         gl.use_program(Some(&program));
-
-        let Some(vertex_buffer) = gl.create_buffer() else {
-            console::log_1(&"vertex buffer none value".into());
-            panic!("vertex buffer none value");
-        };
-
-        let Some(index_buffer) = gl.create_buffer() else {
-            console::log_1(&"index buffer none value".into());
-            panic!("index buffer none value");
-        };
-
-        let vertex_attrib_location = gl.get_attrib_location(&program, "vertex_position");
-        let color_attrib_location = gl.get_attrib_location(&program, "color");
 
         const VERTEX_SIZE: i32 = 3;
         const COLOR_SIZE: i32 = 4;
@@ -172,31 +221,6 @@ pub async fn run() -> Result<(), JsValue> {
         const STRIDE: i32 = (VERTEX_SIZE + COLOR_SIZE) * FLOAT32_BYTES_PER_ELEMENT;
         const POSITION_OFFSET: i32 = 0;
         const COLOR_OFFSET: i32 = VERTEX_SIZE * FLOAT32_BYTES_PER_ELEMENT;
-
-        //バッファをバインド
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vertex_buffer));
-
-        //in変数の有効化(glsl)
-        gl.enable_vertex_attrib_array(vertex_attrib_location as u32);
-        gl.enable_vertex_attrib_array(color_attrib_location as u32);
-
-        gl.vertex_attrib_pointer_with_i32(
-            vertex_attrib_location as u32,
-            VERTEX_SIZE,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            STRIDE,
-            POSITION_OFFSET,
-        );
-        gl.vertex_attrib_pointer_with_i32(
-            color_attrib_location as u32,
-            COLOR_SIZE,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            STRIDE,
-            COLOR_OFFSET,
-        );
-
         let vertices: [f32; 28] = [
             -0.5, 0.5, 0.0,
             1.0, 0.0, 0.0, 1.0,
@@ -207,32 +231,39 @@ pub async fn run() -> Result<(), JsValue> {
             0.5, -0.5, 0.0,
             0.0, 0.0, 0.0, 1.0,
         ];
+        let indices: [f32; 6] =[
+            0.0,1.0,2.0,
+            1.0,3.0,2.0,
+        ];
 
-        let indices = js_sys::Uint16Array::from([0, 1, 2, 1, 3, 2].as_ref());
+        let interleaved_buffer = create_buffer(WebGl2RenderingContext::ARRAY_BUFFER, &vertices, &gl).await.unwrap();
+        let index_buffer = create_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, &indices, &gl).await.unwrap();
 
-        let vertices = js_sys::Float32Array::from(vertices.as_ref());
+        let vertex_attrib_location = gl.get_attrib_location(&program, "vertex_position");
+        let color_attrib_location = gl.get_attrib_location(&program, "color");
 
-        //バインドしてデータを転送
-        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&vertex_buffer));
-        gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            &vertices.into(),
-            WebGl2RenderingContext::STATIC_DRAW,
-        );
+        gl.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&interleaved_buffer));
+        gl.enable_vertex_attrib_array(vertex_attrib_location as u32);
+        gl.enable_vertex_attrib_array(color_attrib_location as u32);
+        gl.vertex_attrib_pointer_with_i32(vertex_attrib_location as u32, VERTEX_SIZE, WebGl2RenderingContext::FLOAT, false, STRIDE, POSITION_OFFSET);
+        gl.vertex_attrib_pointer_with_i32(color_attrib_location as u32, COLOR_SIZE, WebGl2RenderingContext::FLOAT, false, STRIDE, COLOR_OFFSET);
+
+        let index_size = indices.len() as i32;
         gl.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
-        gl.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            &indices.clone().into(),
-            WebGl2RenderingContext::STATIC_DRAW,
-        );
-
-        console::log_1(&"buffer data success".into());
-
-        // 描画
-        let index_size: u32 = indices.length();
-        gl.draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES, index_size as i32, WebGl2RenderingContext::UNSIGNED_SHORT, 0);
-
+        gl.draw_elements_with_i32(WebGl2RenderingContext::TRIANGLES, index_size, WebGl2RenderingContext::UNSIGNED_SHORT, 0);
         gl.flush();
     });
     Ok(())
+}
+
+async fn create_buffer(buffer_type: u32, typed_data_array: &[f32], gl: &WebGl2RenderingContext) -> Result<web_sys::WebGlBuffer, JsValue>{
+    let buffer = gl.create_buffer().unwrap();
+    gl.bind_buffer(buffer_type, Some(&buffer));
+    let array = js_sys::Float32Array::from(typed_data_array);
+    gl.buffer_data_with_array_buffer_view(buffer_type, &array, WebGl2RenderingContext::STATIC_DRAW);
+
+    // バッファのバインドを解除
+    gl.bind_buffer(buffer_type, None);
+
+    Ok(buffer)
 }
