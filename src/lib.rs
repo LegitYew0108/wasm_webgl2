@@ -231,13 +231,13 @@ pub async fn run() -> Result<(), JsValue> {
             0.5, -0.5, 0.0,
             0.0, 0.0, 0.0, 1.0,
         ];
-        let indices: [f32; 6] =[
-            0.0,1.0,2.0,
-            1.0,3.0,2.0,
+        let indices: [u16; 6] =[
+            0,  1,  2,
+            1,  3,  2,
         ];
 
-        let interleaved_buffer = create_buffer(WebGl2RenderingContext::ARRAY_BUFFER, &vertices, &gl).await.unwrap();
-        let index_buffer = create_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, &indices, &gl).await.unwrap();
+        let interleaved_buffer = create_f32_buffer(WebGl2RenderingContext::ARRAY_BUFFER, &vertices, &gl).await.unwrap();
+        let index_buffer = create_u16_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, &indices, &gl).await.unwrap();
 
         let vertex_attrib_location = gl.get_attrib_location(&program, "vertex_position");
         let color_attrib_location = gl.get_attrib_location(&program, "color");
@@ -256,10 +256,22 @@ pub async fn run() -> Result<(), JsValue> {
     Ok(())
 }
 
-async fn create_buffer(buffer_type: u32, typed_data_array: &[f32], gl: &WebGl2RenderingContext) -> Result<web_sys::WebGlBuffer, JsValue>{
+async fn create_f32_buffer(buffer_type: u32, typed_data_array: &[f32], gl: &WebGl2RenderingContext) -> Result<web_sys::WebGlBuffer, JsValue>{
     let buffer = gl.create_buffer().unwrap();
     gl.bind_buffer(buffer_type, Some(&buffer));
     let array = js_sys::Float32Array::from(typed_data_array);
+    gl.buffer_data_with_array_buffer_view(buffer_type, &array, WebGl2RenderingContext::STATIC_DRAW);
+
+    // バッファのバインドを解除
+    gl.bind_buffer(buffer_type, None);
+
+    Ok(buffer)
+}
+
+async fn create_u16_buffer(buffer_type: u32, typed_data_array: &[u16], gl: &WebGl2RenderingContext) -> Result<web_sys::WebGlBuffer, JsValue>{
+    let buffer = gl.create_buffer().unwrap();
+    gl.bind_buffer(buffer_type, Some(&buffer));
+    let array = js_sys::Uint16Array::from(typed_data_array);
     gl.buffer_data_with_array_buffer_view(buffer_type, &array, WebGl2RenderingContext::STATIC_DRAW);
 
     // バッファのバインドを解除
