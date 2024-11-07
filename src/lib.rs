@@ -61,14 +61,13 @@ pub async fn run() -> Result<(), JsValue> {
     let(mut tx, mut rx) = mpsc::channel::<Shader>(32);
 
     let mut vertex_tx = tx.clone();
-    let clone_window = window.clone();
 
     wasm_bindgen_futures::spawn_local(async move{
         console::log_1(&"vertex shader read start".into());
 
         // vertex shaderを読み出す
         let Ok(vertex_shader_source) = wasm_bindgen_futures::JsFuture::from(
-            clone_window.fetch_with_str("../shader/vertex_shader.glsl"),
+            window.fetch_with_str("../shader/vertex_shader.glsl"),
         )
         .await else{
             console::log_1(&"shader read failed".into());
@@ -99,15 +98,12 @@ pub async fn run() -> Result<(), JsValue> {
                 break;
             };
         }
-    });
 
-    let clone_window = window.clone();
-    wasm_bindgen_futures::spawn_local(async move{
         console::log_1(&"fragment shader read start".into());
 
         // fragment shaderを読み出す
         let Ok(fragment_shader_source) = wasm_bindgen_futures::JsFuture::from(
-            clone_window.fetch_with_str("../shader/fragment_shader.glsl"),
+            window.fetch_with_str("../shader/fragment_shader.glsl"),
         )
         .await else{
             console::log_1(&"shader read failed".into());
