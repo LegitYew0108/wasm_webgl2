@@ -1,3 +1,4 @@
+use futures::StreamExt;
 use wasm_bindgen::prelude::*;
 use web_sys::{console,Response,HtmlCanvasElement,WebGl2RenderingContext};
 use futures::channel::mpsc;
@@ -141,11 +142,7 @@ pub async fn run() -> Result<(), JsValue> {
         let mut is_vertex_received = false;
         let mut fragment_shader_source:Option<String> = None;
         let mut is_fragment_received = false;
-        while let message = rx.try_next(){
-            let Ok(message) = message else{
-                console::log_1(&"could not receive message".into());
-                panic!("could not receive message");
-            };
+        while let message = rx.next().await {
             let Some(message) = message else{
                 console::log_1(&"message none".into());
                 break;
