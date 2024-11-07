@@ -165,11 +165,6 @@ pub async fn run() -> Result<(), JsValue> {
             }
         };
 
-        if !is_vertex_received || !is_fragment_received{
-            console::log_1(&"shader read failed".into());
-            panic!("shader read failed");
-        }
-
         let vertex_shader = gl.create_shader(WebGl2RenderingContext::VERTEX_SHADER).unwrap();
         let fragment_shader = gl.create_shader(WebGl2RenderingContext::FRAGMENT_SHADER).unwrap();
 
