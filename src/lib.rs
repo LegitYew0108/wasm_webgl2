@@ -8,7 +8,7 @@ enum Shader{
     Fragment(String),
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(start)]
 pub async fn run() -> Result<(), JsValue> {
     //いつもの　window, document, bodyを取得
     let Some(window) = web_sys::window() else{
