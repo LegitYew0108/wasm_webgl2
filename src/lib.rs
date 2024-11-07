@@ -58,7 +58,7 @@ pub async fn run() -> Result<(), JsValue> {
         return Err(JsValue::NULL);
     };
 
-    let(mut tx, rx) = mpsc::channel::<Shader>(32);
+    let(mut tx, mut rx) = mpsc::channel::<Shader>(32);
 
     let mut vertex_tx = tx.clone();
     let clone_window = window.clone();
@@ -141,27 +141,33 @@ pub async fn run() -> Result<(), JsValue> {
     });
 
     wasm_bindgen_futures::spawn_local(async move{
-        let vertex_shader_source:Option<String> = None;
-        let is_vertex_received = false;
-        let fragment_shader_source:Option<String> = None;
-        let is_fragment_received = false;
-        rx.for_each(|shader|{
-            match shader{
+        let mut vertex_shader_source:Option<String> = None;
+        let mut is_vertex_received = false;
+        let mut fragment_shader_source:Option<String> = None;
+        let mut is_fragment_received = false;
+        while let Ok(message) = rx.try_next(){
+            let Some(message) = message else{
+                break;
+            };
+            match message{
                 Shader::Vertex(source) => {
                     console::log_1(&"vertex shader".into());
-                    console::log_1(&source.into());
+                    console::log_1(&source.clone().into());
                     vertex_shader_source = Some(source);
                     is_vertex_received = true;
                 },
                 Shader::Fragment(source) => {
                     console::log_1(&"fragment shader".into());
-                    console::log_1(&source.into());
+                    console::log_1(&source.clone().into());
                     fragment_shader_source = Some(source);
                     is_fragment_received = true;
                 },
             }
-            futures::future::ready(())
-        }).await;
+
+            if is_vertex_received && is_fragment_received{
+                break;
+            }
+        };
 
         if !is_vertex_received || !is_fragment_received{
             console::log_1(&"shader read failed".into());
