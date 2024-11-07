@@ -212,6 +212,7 @@ pub async fn run() -> Result<(), JsValue> {
 
         // プログラムを使用
         gl.use_program(Some(&program));
+        console::log_1(&"use program success".into());
 
         const VERTEX_SIZE: i32 = 3;
         const COLOR_SIZE: i32 = 4;
